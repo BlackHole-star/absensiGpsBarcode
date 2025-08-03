@@ -1,17 +1,17 @@
 @extends('layouts.auth')
 
-@section('title', 'Login')
+@section('title', 'Masuk')
 
 @section('content')
-  <form class="card shadow-sm" action="{{ route('login') }}" method="POST">
+  <form class="card shadow-sm border-0" action="{{ route('login') }}" method="POST">
     @csrf
-    <div class="card-body p-6 space-y-4">
+    <div class="card-body p-5 space-y-4">
 
-      <h2 class="card-title text-center text-lg font-semibold">Login to your account</h2>
+      <h2 class="card-title text-center text-xl fw-semibold">Masuk ke Akun Anda</h2>
 
       @if ($errors->any())
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative text-sm">
-          <ul class="mb-0 list-disc ps-5">
+        <div class="alert alert-danger text-sm py-2 px-3 rounded shadow-sm">
+          <ul class="mb-0 ps-4">
             @foreach ($errors->all() as $error)
               <li>{{ $error }}</li>
             @endforeach
@@ -20,33 +20,57 @@
       @endif
 
       <div class="form-group">
-        <label class="form-label">Email address</label>
-        <input type="email" name="email" class="form-control focus:ring focus:ring-blue-200" value="{{ old('email') }}" required autofocus>
+        <label for="email" class="form-label">Alamat Email</label>
+        <input 
+          type="email" 
+          id="email" 
+          name="email" 
+          class="form-control form-control-lg" 
+          placeholder="nama@contoh.com"
+          value="{{ old('email') }}" 
+          required 
+          autofocus
+        >
       </div>
 
       <div class="form-group">
-        <label class="form-label d-flex justify-between items-center">
-          <span>Password</span>
-          <a href="#" class="text-xs text-blue-500 hover:underline">Forgot password?</a>
+        <label for="password" class="form-label d-flex justify-between align-items-center">
+          <span>Kata Sandi</span>
+          <a href="#" class="text-sm text-primary text-decoration-none">Lupa kata sandi?</a>
         </label>
-        <input type="password" name="password" class="form-control focus:ring focus:ring-blue-200" required>
+        <input 
+          type="password" 
+          id="password" 
+          name="password" 
+          class="form-control form-control-lg" 
+          placeholder="Masukkan kata sandi" 
+          required
+        >
       </div>
 
-      <div class="form-group">
-        <label class="custom-control custom-checkbox items-center">
-          <input type="checkbox" class="custom-control-input" name="remember">
-          <span class="custom-control-label">Remember me</span>
+      <div class="form-check mb-3">
+        <input 
+          class="form-check-input" 
+          type="checkbox" 
+          name="remember" 
+          id="remember"
+        >
+        <label class="form-check-label" for="remember">
+          Ingat saya
         </label>
       </div>
 
-      <div class="form-footer">
-        <button type="submit" class="btn btn-primary w-full">Sign in</button>
+      <div>
+        <button type="submit" class="btn btn-primary btn-lg w-100">
+          Masuk
+        </button>
       </div>
+
     </div>
   </form>
 
-  <div class="text-center text-muted mt-3 text-sm">
-    Don't have an account?
-    <a href="{{ route('register') }}" class="text-blue-500 hover:underline">Sign up</a>
+  <div class="text-center text-muted mt-4 text-sm">
+    Belum punya akun?
+    <a href="{{ route('register') }}" class="text-primary text-decoration-none">Daftar sekarang</a>
   </div>
 @endsection

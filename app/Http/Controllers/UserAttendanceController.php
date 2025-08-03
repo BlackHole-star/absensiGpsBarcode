@@ -6,13 +6,20 @@ use App\Models\Attendance;
 use App\Models\Barcode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 
 class UserAttendanceController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function history(Request $request)
     {
         $month = $request->input('month', now()->format('Y-m'));
-        $start = \Carbon\Carbon::parse($month . '-01')->startOfMonth();
+        $start = Carbon::parse($month . '-01')->startOfMonth();
         $end = $start->copy()->endOfMonth();
 
         $attendances = Attendance::where('user_id', Auth::id())
@@ -21,7 +28,6 @@ class UserAttendanceController extends Controller
 
         return view('user.attendance.attendance-history', compact('attendances'));
     }
-
 
     public function scanForm()
     {
@@ -32,13 +38,13 @@ class UserAttendanceController extends Controller
             ->where('date', $today)
             ->first();
 
-        return view('user.scan', compact('attendance', 'today')); // <== ini penting
+        return view('user.scan', compact('attendance', 'today'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'barcode_value' => 'required',
+            'barcode_value' => 'required|string',
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
         ]);
@@ -46,30 +52,50 @@ class UserAttendanceController extends Controller
         $barcode = Barcode::where('value', $request->barcode_value)->first();
 
         if (!$barcode) {
-            return back()->with('error', 'Barcode tidak dikenali.');
+            return response()->json(['message' => 'Barcode tidak dikenali.'], 400);
         }
 
         $distance = $this->calculateDistance($barcode->latitude, $barcode->longitude, $request->latitude, $request->longitude);
         if ($distance > $barcode->radius) {
-            return back()->with('error', 'Lokasi terlalu jauh dari barcode.');
+            return response()->json(['message' => 'Lokasi terlalu jauh dari barcode.'], 400);
         }
 
         $today = now()->toDateString();
-        $existing = Attendance::where('user_id', Auth::id())->where('date', $today)->first();
-        if ($existing) {
-            return back()->with('error', 'Kamu sudah absen hari ini.');
+        $userId = Auth::id();
+        $attendance = Attendance::where('user_id', $userId)->where('date', $today)->first();
+
+        if ($attendance) {
+            if ($attendance->time_in && !$attendance->time_out) {
+                // Sudah absen masuk tapi belum keluar → proses absen keluar
+                $attendance->update([
+                    'time_out' => now()->toTimeString(),
+                ]);
+
+                return response()->json(['message' => 'Absen keluar berhasil.']);
+            } elseif ($attendance->time_in && $attendance->time_out) {
+                // Sudah absen masuk dan keluar
+                return response()->json(['message' => 'Kamu sudah absen masuk dan keluar hari ini.'], 400);
+            } else {
+                // Aneh, tapi fallback
+                return response()->json(['message' => 'Absen sudah tercatat.'], 400);
+            }
         }
 
+        // Belum ada data → proses absen masuk
+        $createdTime = Carbon::parse($barcode->created_at);
+        $isLate = now()->diffInMinutes($createdTime) > 30;
+
         Attendance::create([
-            'user_id' => Auth::id(),
+            'user_id' => $userId,
+            'barcode_id' => $barcode->id,
             'date' => $today,
-            'check_in' => now()->toTimeString(),
+            'time_in' => now()->toTimeString(),
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
-            'status' => 'present',
+            'status' => $isLate ? 'late' : 'present',
         ]);
 
-        return back()->with('success', 'Absen berhasil.');
+        return response()->json(['message' => 'Absen masuk berhasil.']);
     }
 
     public function checkout(Request $request)
@@ -80,18 +106,18 @@ class UserAttendanceController extends Controller
             ->first();
 
         if (!$attendance) {
-            return back()->with('error', 'Kamu belum absen hari ini.');
+            return redirect()->back()->with('error', 'Kamu belum absen masuk.');
         }
 
-        if ($attendance->check_out) {
-            return back()->with('error', 'Sudah checkout.');
+        if ($attendance->time_out) {
+            return redirect()->back()->with('error', 'Sudah checkout.');
         }
 
         $attendance->update([
-            'check_out' => now()->toTimeString(),
+            'time_out' => now()->toTimeString(),
         ]);
 
-        return back()->with('success', 'Checkout berhasil.');
+        return redirect()->back()->with('success', 'Checkout berhasil.');
     }
 
     public function formIzin()
@@ -102,31 +128,43 @@ class UserAttendanceController extends Controller
     public function submitIzin(Request $request)
     {
         $request->validate([
-            'date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:date',
-            'status' => 'required|in:sick,leave,absent',
-            'keterangan' => 'required|string|max:255',
-            'bukti' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'from' => 'required|date',
+            'to' => 'nullable|date|after_or_equal:from',
+            'status' => 'required|in:sick,excused',
+            'note' => 'required|string|max:255',
+            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
 
-        // Upload bukti
         $filename = null;
-        if ($request->hasFile('bukti')) {
-            $filename = $request->file('bukti')->store('bukti_izin', 'public');
+        if ($request->hasFile('attachment')) {
+            $filename = $request->file('attachment')->store('bukti_izin', 'public');
         }
 
-        Attendance::create([
-            'user_id' => Auth::id(),
-            'date' => $request->date,
-            'end_date' => $request->end_date,
-            'status' => $request->status,
-            'keterangan' => $request->keterangan,
-            'bukti' => $filename,
-        ]);
+        $dates = $request->to
+            ? CarbonPeriod::create($request->from, $request->to)
+            : [Carbon::parse($request->from)];
 
-        return redirect()->route('user.dashboard')->with('success', 'Pengajuan izin/sakit berhasil dikirim.');
+        foreach ($dates as $day) {
+            Attendance::create([
+                'user_id' => Auth::id(),
+                'date' => Carbon::parse($day)->toDateString(),
+                'status' => $request->status,
+                'note' => $request->note,
+                'attachment' => $filename,
+            ]);
+        }
+
+        return redirect()->route('user.absen.scan')->with('success', 'Pengajuan izin/sakit berhasil dikirim.');
     }
 
+    public function showDetail($date)
+    {
+        $attendance = Attendance::where('user_id', Auth::id())
+            ->where('date', $date)
+            ->first();
+
+        return view('user.attendance.detail', compact('attendance', 'date'));
+    }
 
     private function calculateDistance($lat1, $lon1, $lat2, $lon2)
     {
@@ -141,13 +179,4 @@ class UserAttendanceController extends Controller
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
         return $earthRadius * $c;
     }
-    public function showDetail($date)
-    {
-        $attendance = Attendance::where('user_id', Auth::id())
-            ->where('date', $date)
-            ->first();
-
-        return view('user.attendance.detail', compact('attendance', 'date'));
-    }
-
 }

@@ -14,7 +14,7 @@
   {{-- Tombol Kembali --}}
   <div class="mb-3">
     <a href="{{ route('user.absen.scan') }}" class="btn btn-outline-secondary">
-      ← Kembali ke Halaman Scan
+      ← Kembali
     </a>
   </div>
 
@@ -56,8 +56,8 @@
         </div>
 
         {{-- Lokasi GPS --}}
-        <input type="hidden" name="latitude" id="latitude">
-        <input type="hidden" name="longitude" id="longitude">
+        {{-- <input type="hidden" name="latitude" id="latitude">
+        <input type="hidden" name="longitude" id="longitude"> --}}
 
         <div class="mt-4 text-end">
           <button type="submit" class="btn btn-primary">Kirim Pengajuan</button>
@@ -70,14 +70,14 @@
 {{-- Script --}}
 <script>
   // Lokasi otomatis
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(function (pos) {
-      document.getElementById('latitude').value = pos.coords.latitude;
-      document.getElementById('longitude').value = pos.coords.longitude;
-    }, function () {
-      alert('Gagal mendeteksi lokasi. Aktifkan izin lokasi browser.');
-    });
-  }
+  // if (navigator.geolocation) {
+  //   navigator.geolocation.getCurrentPosition(function (pos) {
+  //     document.getElementById('latitude').value = pos.coords.latitude;
+  //     document.getElementById('longitude').value = pos.coords.longitude;
+  //   }, function () {
+  //     alert('Gagal mendeteksi lokasi. Aktifkan izin lokasi browser.');
+  //   });
+  // }
 
   // Preview lampiran gambar
   function previewImage(event) {

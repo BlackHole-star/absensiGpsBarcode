@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Attendance;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -34,19 +35,4 @@ class AdminController extends Controller
             'date'
         ));
     }
-
-    public function rekapHarian(Request $request)
-    {
-        $date = $request->input('date', date('Y-m-d'));
-
-        $rekap = [
-            'present' => Attendance::with('user')->where('date', $date)->where('status', 'present')->get(),
-            'sick'    => Attendance::with('user')->where('date', $date)->where('status', 'sick')->get(),
-            'leave'   => Attendance::with('user')->where('date', $date)->where('status', 'leave')->get(),
-            'absent'  => Attendance::with('user')->where('date', $date)->where('status', 'absent')->get(),
-        ];
-
-        return view('admin.rekap', compact('rekap', 'date'));
-    }
-
 }

@@ -25,6 +25,6 @@
     </div>
   @endif
 
-  <a href="{{ route('user.attendance.history') }}" class="btn btn-secondary mt-4">← Kembali</a>
+  <a href="{{ route('user.absen.history') }}" class="btn btn-secondary mt-4">← Kembali</a>
 </div>
 @endsection
