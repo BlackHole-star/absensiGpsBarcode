@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\User\ScanController;
 use App\Http\Controllers\User\IzinController;
 use App\Http\Controllers\User\AttendanceHistoryController;
+use App\Http\Controllers\ProfileController;
 
 // ========== AUTH ==========
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -17,6 +18,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+Route::get('/profil', [ProfileController::class, 'show'])->name('profile.show');
+Route::post('/profil', [ProfileController::class, 'update'])->name('profile.update');
 
 // Redirect root ke login
 Route::get('/', fn () => redirect()->route('login'));

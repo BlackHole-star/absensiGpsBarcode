@@ -110,7 +110,7 @@
           @if(auth()->user()->role === 'admin')
             <ul class="nav">
               <li class="nav-item"><a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Beranda</a></li>
-              <li class="nav-item"><a href="{{ route('admin.barcodes.index') }}" class="nav-link {{ request()->routeIs('admin.barcodes.*') ? 'active' : '' }}">Kode Barcode</a></li>
+              <li class="nav-item"><a href="{{ route('admin.barcodes.index') }}" class="nav-link {{ request()->routeIs('admin.barcodes.*') ? 'active' : '' }}">Kode QR</a></li>
               <li class="nav-item"><a href="{{ route('admin.rekap') }}" class="nav-link {{ request()->routeIs('admin.rekap') ? 'active' : '' }}">Rekap Absensi</a></li>
               <li class="nav-item"><a href="{{ route('admin.employees.index') }}" class="nav-link {{ request()->routeIs('admin.employees.*') ? 'active' : '' }}">Data Karyawan</a></li>
             </ul>
@@ -120,12 +120,22 @@
 
       {{-- Info Pengguna + Logout --}}
       @auth
-        <div class="user-info">
-          <span class="fw-semibold text-primary mb-0">Halo, {{ auth()->user()->name }}</span>
-          <form method="POST" action="{{ route('logout') }}" class="mb-0">
-            @csrf
-            <button type="submit" class="btn btn-sm btn-logout">Keluar</button>
-          </form>
+        <div class="dropdown">
+          <button class="btn btn-sm dropdown-toggle fw-semibold text-primary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Halo, {{ auth()->user()->name }}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+            <li>
+              <a class="dropdown-item" href="{{ route('profile.show') }}">Profil</a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button class="dropdown-item text-danger" type="submit">Keluar</button>
+              </form>
+            </li>
+          </ul>
         </div>
       @endauth
     </nav>
@@ -144,6 +154,8 @@
     <script src="{{ asset('assets/js/vendors/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('assets/js/dashboard.js') }}"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
     @stack('scripts')
   </body>
 </html>
